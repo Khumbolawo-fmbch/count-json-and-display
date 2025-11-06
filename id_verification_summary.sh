@@ -1,13 +1,22 @@
 #!/bin/bash
 
-# Usage: ./verify_summary.sh /path/to/json/files
+# Usage: ./verify_summary.sh /path/to/json/files [suffix]
+# Example: ./verify_summary.sh /home/... run1
+
 if [ -z "$1" ]; then
-  echo "Usage: $0 /path/to/json/folder"
+  echo "Usage: $0 /path/to/json/folder [optional_suffix]"
   exit 1
 fi
 
 FOLDER="$1"
-CSV_FILE="$FOLDER/verification_summary.csv"
+SUFFIX="$2"
+
+# Build CSV filename
+if [ -n "$SUFFIX" ]; then
+  CSV_FILE="$FOLDER/verification_summary_${SUFFIX}.csv"
+else
+  CSV_FILE="$FOLDER/verification_summary.csv"
+fi
 
 # Initialize counters and lists
 total=0
@@ -42,7 +51,7 @@ for file in "$FOLDER"/*.json; do
     fp="false"
     fn="false"
 
-    # Apply logic matrix
+    # Apply matrix logic
     if [ "$matches_id" = "true" ] && [ "$verified" = "false" ]; then
       ((false_negative++))
       fn="true"
@@ -53,7 +62,7 @@ for file in "$FOLDER"/*.json; do
       false_positive_files+=("$file")
     fi
 
-    # Write row to CSV
+    # Append row to CSV
     echo "$(basename "$file"),$verified,$matches_id,$fp,$fn,$similarity_score,$threshold_used" >> "$CSV_FILE"
   fi
 done
@@ -63,6 +72,7 @@ echo "---------------------------------------------"
 echo "Verification Summary"
 echo "---------------------------------------------"
 echo "Folder: $FOLDER"
+echo "CSV file: $(basename "$CSV_FILE")"
 echo "Total verifications attempted: $total"
 echo "Successful verifications:      $success"
 echo "Failed verifications:          $failed"
@@ -70,7 +80,7 @@ echo "False positives:               $false_positive"
 echo "False negatives:               $false_negative"
 echo "---------------------------------------------"
 
-# Calculate percentages if total > 0
+# Calculate percentages
 if [ "$total" -gt 0 ]; then
   success_rate=$(awk "BEGIN {printf \"%.2f\", ($success/$total)*100}")
   fp_rate=$(awk "BEGIN {printf \"%.2f\", ($false_positive/$total)*100}")
